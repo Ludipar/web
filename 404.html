@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 - Page Not Found</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: #121212; color: white; text-align: center; }
+        .container { display: none; }
+        .error { display: flex; flex-direction: column; gap: 10px; }
+        .error h1 { font-size: 4em; }
+        .error p { font-size: 1.5em; }
+        .error a { padding: 10px 20px; background: #6200EA; color: white; text-decoration: none; border-radius: 5px; }
+        .error a:hover { background: #3700B3; }
+        iframe { width: 100vw; height: 100vh; border: none; display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <iframe id="gameFrame" title="Ludipar Game"></iframe>
+    </div>
+    <div class="error">
+        <h1>404</h1>
+        <p>Page Not Found</p>
+        <a href="/">Back to Home</a>
+    </div>
+
+    <script>
+        const path = window.location.pathname;
+        const match = path.match(/^\\/game\\/([^\\/]+)/);
+
+        if (match) {
+            const gameId = match[1];
+            document.getElementById("gameFrame").src = `/run?id=${gameId}`;
+            document.querySelector(".container").style.display = "block";
+            document.getElementById("gameFrame").style.display = "block";
+            document.querySelector(".error").style.display = "none";
+            document.title = "Ludipar Game";
+        }
+    </script>
+</body>
+</html>
