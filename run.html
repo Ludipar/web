@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Run Game</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+    }
+    #gameContent {
+      width: 100vw;
+      height: 100vh;
+      border: none;
+    }
+  </style>
+</head>
+<body>
+  <!-- This iframe will load the actual game URL -->
+  <iframe id="gameContent" sandbox="allow-scripts allow-same-origin allow-forms" title="Game Content"></iframe>
+  
+  <script>
+    // Utility: get URL query parameter
+    function getQueryParam(param) {
+      const params = new URLSearchParams(window.location.search);
+      return params.get(param);
+    }
+
+    const projectId = getQueryParam('id');
+    if (!projectId) {
+      document.body.innerHTML = '<h1>Error: Missing project id in URL.</h1>';
+      throw new Error('Missing project id');
+    }
+
+    // Fetch the project JSON
+    fetch(`/projects/${projectId}.json`)
+      .then(response => {
+        if (!response.ok) throw new Error('Project JSON not found');
+        return response.json();
+      })
+      .then(data => {
+        const { SRC } = data;
+        if (!SRC) throw new Error('Invalid project JSON structure.');
+        // Set the iframe to the game URL provided in the JSON
+        document.getElementById('gameContent').src = SRC;
+      })
+      .catch(err => {
+        document.body.innerHTML = `<h1>Error loading project: ${err.message}</h1>`;
+      });
+  </script>
+</body>
+</html>
