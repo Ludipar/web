@@ -21,7 +21,7 @@
     <!-- This iframe will load run.html which in turn loads the actual game -->
     <iframe id="gameFrame" title="Ludipar Game"></iframe>
   </div>
-  <div class="error">
+  <div class="error" id="errorScreen">
     <h1>404</h1>
     <p>Page Not Found</p>
     <a href="/">Back to Home</a>
@@ -92,40 +92,47 @@
       }
     });
   
-    // --- Check URL and Setup Game Iframe if in /game/ directory ---
+    // --- Check URL and Initialize Game if in /game/ directory ---
     const path = window.location.pathname;
     const match = path.match(/^\/game\/([^\/]+)/);
-
   
     if (match) {
       const gameId = match[1];
-      // Change the page title for games
-      document.title = "Ludipar Game";
   
-      // Build the URL for run.html with the appropriate id parameter
-      const runUrl = `/run.html?id=${gameId}`;
-      document.getElementById("gameFrame").src = runUrl;
-  
-      // Initialize the IndexedDB by fetching the project JSON to get DATANAME
+      // Fetch project JSON to verify existence and get DATANAME
       fetch(`/projects/${gameId}.json`)
         .then(response => {
           if (!response.ok) throw new Error('Project JSON not found');
           return response.json();
         })
         .then(data => {
-          const { DATANAME } = data;
-          if (DATANAME) {
-            initDB(DATANAME);
-          } else {
-            console.error('DATANAME not provided in JSON.');
+          // Check that DATANAME exists in the JSON, if not, error out
+          if (!data.DATANAME) {
+            throw new Error('Invalid project JSON structure.');
           }
-        })
-        .catch(err => console.error('Error initializing DB:', err));
   
-      // Show the game container and hide the standard 404 error message.
-      document.querySelector(".container").style.display = "block";
-      document.getElementById("gameFrame").style.display = "block";
-      document.querySelector(".error").style.display = "none";
+          // If we have valid project JSON, update the page title
+          document.title = "Ludipar Game";
+  
+          // Initialize IndexedDB with the project's DATANAME for save/load functionality
+          initDB(data.DATANAME);
+  
+          // Build the URL for run.html with the appropriate id parameter
+          const runUrl = `/run.html?id=${gameId}`;
+          document.getElementById("gameFrame").src = runUrl;
+  
+          // Show the game container and hide the error screen.
+          document.querySelector(".container").style.display = "block";
+          document.getElementById("gameFrame").style.display = "block";
+          document.getElementById("errorScreen").style.display = "none";
+        })
+        .catch(err => {
+          console.error('Error initializing game:', err);
+          // If the JSON doesn't exist or is invalid, show the full 404 error screen.
+          document.title = "404 - Page Not Found";
+          document.querySelector(".container").style.display = "none";
+          document.getElementById("errorScreen").style.display = "flex";
+        });
     }
   </script>
 </body>
