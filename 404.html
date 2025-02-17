@@ -94,7 +94,8 @@
   
     // --- Check URL and Setup Game Iframe if in /game/ directory ---
     const path = window.location.pathname;
-    const match = path.match(/^\\/game\\/([^\\/]+)/);
+    const match = path.match(/^\/game\/([^\/]+)/);
+
   
     if (match) {
       const gameId = match[1];
