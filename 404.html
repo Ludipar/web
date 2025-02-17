@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>404 - Page Not Found</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: #121212; color: white; text-align: center; }
+    .container { display: none; }
+    .error { display: flex; flex-direction: column; gap: 10px; }
+    .error h1 { font-size: 4em; }
+    .error p { font-size: 1.5em; }
+    .error a { padding: 10px 20px; background: #6200EA; color: white; text-decoration: none; border-radius: 5px; }
+    .error a:hover { background: #3700B3; }
+    iframe { width: 100vw; height: 100vh; border: none; display: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- This iframe will load run.html which in turn loads the actual game -->
+    <iframe id="gameFrame" title="Ludipar Game"></iframe>
+  </div>
+  <div class="error">
+    <h1>404</h1>
+    <p>Page Not Found</p>
+    <a href="/">Back to Home</a>
+  </div>
+  
+  <script>
+    // --- IndexedDB Setup ---
+    let db;
+    let currentDataName;
+    function initDB(dataName) {
+      currentDataName = dataName;
+      const request = indexedDB.open('LudiparGameSaves', 1);
+  
+      request.onupgradeneeded = function(event) {
+        db = event.target.result;
+        if (!db.objectStoreNames.contains('saves')) {
+          db.createObjectStore('saves', { keyPath: 'dataName' });
+        }
+      };
+  
+      request.onsuccess = function(event) {
+        db = event.target.result;
+        console.log('IndexedDB initialized.');
+      };
+  
+      request.onerror = function(event) {
+        console.error('IndexedDB error:', event.target.errorCode);
+      };
+    }
+  
+    // --- Handle Save/Load Requests from the Game ---
+    window.addEventListener('message', (event) => {
+      const { type, save_data } = event.data;
+  
+      if (type === 'REQUEST_SAVE_GAME_EVENT') {
+        // Save to IndexedDB using currentDataName as key
+        if (db && currentDataName) {
+          const tx = db.transaction('saves', 'readwrite');
+          const store = tx.objectStore('saves');
+          store.put({ dataName: currentDataName, saveData: save_data });
+          tx.oncomplete = () => console.log('Game state saved.');
+          tx.onerror = () => console.error('Error saving game state.');
+        }
+      } 
+      else if (type === 'REQUEST_LOAD_GAME_EVENT') {
+        // Load game state from IndexedDB and send it back
+        if (db && currentDataName) {
+          const tx = db.transaction('saves', 'readonly');
+          const store = tx.objectStore('saves');
+          const getRequest = store.get(currentDataName);
+          getRequest.onsuccess = function() {
+            const result = getRequest.result ? getRequest.result.saveData : null;
+            const responseEvent = {
+              type: 'RESPONSE_LOAD_GAME_EVENT',
+              save_data: result
+            };
+            event.source.postMessage(responseEvent, event.origin);
+          };
+          getRequest.onerror = function() {
+            console.error('Error loading game state.');
+            const responseEvent = {
+              type: 'RESPONSE_LOAD_GAME_EVENT',
+              save_data: null
+            };
+            event.source.postMessage(responseEvent, event.origin);
+          };
+        }
+      }
+    });
+  
+    // --- Check URL and Setup Game Iframe if in /game/ directory ---
+    const path = window.location.pathname;
+    const match = path.match(/^\\/game\\/([^\\/]+)/);
+  
+    if (match) {
+      const gameId = match[1];
+      // Change the page title for games
+      document.title = "Ludipar Game";
+  
+      // Build the URL for run.html with the appropriate id parameter
+      const runUrl = `/run.html?id=${gameId}`;
+      document.getElementById("gameFrame").src = runUrl;
+  
+      // Initialize the IndexedDB by fetching the project JSON to get DATANAME
+      fetch(`/projects/${gameId}.json`)
+        .then(response => {
+          if (!response.ok) throw new Error('Project JSON not found');
+          return response.json();
+        })
+        .then(data => {
+          const { DATANAME } = data;
+          if (DATANAME) {
+            initDB(DATANAME);
+          } else {
+            console.error('DATANAME not provided in JSON.');
+          }
+        })
+        .catch(err => console.error('Error initializing DB:', err));
+  
+      // Show the game container and hide the standard 404 error message.
+      document.querySelector(".container").style.display = "block";
+      document.getElementById("gameFrame").style.display = "block";
+      document.querySelector(".error").style.display = "none";
+    }
+  </script>
+</body>
+</html>
