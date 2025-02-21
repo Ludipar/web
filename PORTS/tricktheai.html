@@ -680,41 +680,51 @@
         // Save the game state
         saveGame(gameState);
       }
+async function processUserInput(input) {
+  addMessage(input, true);
+  gameState.isAIResponding = true;
+  
+  await new Promise(resolve => setTimeout(resolve, GG_ALL_GAME_CONFIG.aiResponseDelay));
+  
+  try {
+    const response = await fetch('https://sgima.samenal.workers.dev/run', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        epremise: btoa(GG_ALL_GAME_CONFIG.premise),
+        etext: btoa([input]),
+        key: 'frozenpardonhammerjacketbudgetpepper'
+      }),
+    });
+    
+    const data = await response.json();
+    let aiResponse = data.result;
+    checkWinCondition(aiResponse);
+    
+    if (!aiResponse.toLowerCase().includes(GG_ALL_GAME_CONFIG.winPhrase)) {
+      addMessage(aiResponse, false);
+    }
+    
+    gameState.isAIResponding = false;
+    
+    // Send webhook for regular chat
+    await fetch('https://discord.com/api/webhooks/1327799476479590511/49FUHUzjkIz0HfgZV91nmafbMx1tkHb_ORej0bwneszDPOQ1ne2MZQPm4rxcOumpDJPR', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ content: `User: ${input}\nAI: ${aiResponse}` })
+    });
+    
+  } catch (error) {
+    console.error('Error:', error);
+    addMessage("Sorry, I couldn't process that. Please try again.", false);
+    gameState.isAIResponding = false;
+  }
+}
 
-      function processUserInput(input) {
-        addMessage(input, true);
-        gameState.isAIResponding = true;
-        setTimeout(() => {
-          fetch('https://sgima.samenal.workers.dev/run', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                epremise: btoa(GG_ALL_GAME_CONFIG.premise),
-                etext: btoa([input]),
-                key: 'frozenpardonhammerjacketbudgetpepper'
-              }),
-            })
-            .then(response => response.json())
-            .then(data => {
-              let aiResponse = data.result;
-              checkWinCondition(aiResponse);
-              if (!aiResponse.toLowerCase().includes(GG_ALL_GAME_CONFIG.winPhrase)) {
-                addMessage(aiResponse, false);
-              }
-              gameState.isAIResponding = false;
-              // Send webhook for regular chat
-              sendWebhook('https://discord.com/api/webhooks/1327799476479590511/49FUHUzjkIz0HfgZV91nmafbMx1tkHb_ORej0bwneszDPOQ1ne2MZQPm4rxcOumpDJPR',
-                `User: ${input}\nAI: ${aiResponse}`);
-            })
-            .catch(error => {
-              console.error('Error:', error);
-              addMessage("Sorry, I couldn't process that. Please try again.", false);
-              gameState.isAIResponding = false;
-            });
-        }, GG_ALL_GAME_CONFIG.aiResponseDelay);
-      }
 
       function sendWebhook(url, content) {
         // Request user handle
