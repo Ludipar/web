@@ -2,6 +2,25 @@
 <html lang="en">
 
 <head>
+  <script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const consent = confirm(
+      "⚠️ Your IP is collected and SHA-512 hashed twice to generate a unique user handle. " +
+      "Only the first 16 characters of the hash are visible to others.\n\nDo you accept?"
+    );
+
+    if (!consent) {
+      document.head.innerHTML = "";
+      document.body.innerHTML = "";
+    } else {
+      const notice = document.createElement("div");
+      notice.innerHTML = "✅ Your IP is securely hashed (SHA-512 x2). Only the first 16 characters are shown to users.";
+      notice.style.cssText = "position:fixed; bottom:10px; left:10px; background:#222; color:white; padding:8px; border-radius:4px; font-size:12px;";
+      document.body.appendChild(notice);
+    }
+  });
+</script>
+
   <meta name="referrer" content="no-referrer-when-downgrade">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -810,30 +829,22 @@ async function processUserInput(input) {
       // Initialize character counters
       updateCharCounter(userInput, document.getElementById('user-input-counter'), GG_ALL_GAME_CONFIG.maxChatLength);
       updateCharCounter(scoreTextInput, document.getElementById('score-text-counter'), GG_ALL_GAME_CONFIG.maxScoreTextLength);
+async function saveScore(score, scoreText, winningExchange) {
+  await fetch("https://leaderboard.samenal.workers.dev/save", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      score: score,
+      scoreText: `${scoreText}###${winningExchange}`,
+    }),
+  });
+}
 
-      function saveScore(score, scoreText, winningExchange) {
-        const submitScoreEvent = {
-          type: 'REQUEST_SAVE_SCORE_EVENT',
-          score_numeric: score,
-          score_text: `${scoreText}###${winningExchange}`,
-        };
-        window.parent.postMessage(submitScoreEvent, '*');
-      }
-
-      function requestLeaderboard() {
-        window.parent.postMessage({
-          type: 'REQUEST_LOAD_SCORES_EVENT'
-        }, '*');
-      }
-      window.addEventListener('message', (event) => {
-        const {
-          type,
-          scores
-        } = event.data;
-        if (type === 'RESPONSE_LOAD_SCORES_EVENT') {
-          updateLeaderboard(scores);
-        }
-      });
+async function requestLeaderboard() {
+  const response = await fetch("https://leaderboard.samenal.workers.dev/leaderboard");
+  const scores = await response.json();
+  updateLeaderboard(scores);
+}
 
       function updateLeaderboard(scores) {
         const leaderboardContent = document.getElementById('leaderboard-content');
