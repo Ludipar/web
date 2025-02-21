@@ -699,7 +699,7 @@ async function processUserInput(input) {
     });
     
     const data = await response.json();
-    aiResponse = String(data.result.result.response || ""); // Ensures aiResponse is always a string
+    aiResponse = String(data.result.response || ""); // Ensures aiResponse is always a string
     console.log(data)
 
     checkWinCondition(aiResponse);
