@@ -699,8 +699,6 @@
             .then(response => response.json())
             .then(data => {
               let aiResponse = data.result;
-              // Filter out # and ~ from the AI response
-              aiResponse = aiResponse.replace(/[#~]/g, '');
               checkWinCondition(aiResponse);
               if (!aiResponse.toLowerCase().includes(GG_ALL_GAME_CONFIG.winPhrase)) {
                 addMessage(aiResponse, false);
