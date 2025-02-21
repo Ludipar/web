@@ -1,0 +1,987 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta name="referrer" content="no-referrer-when-downgrade">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trick the AI</title>
+  <style>
+    .small-gray-text {
+      font-size: 0.8em;
+      color: #888;
+    }
+
+    #info-container p#system-prompt {
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      font-size: 0.8em;
+      color: #666;
+      margin-top: 1rem;
+      padding: 0.5rem;
+      background-color: #f0f0f0;
+      border-radius: 0.3125rem;
+    }
+
+    #original-premise {
+      background: linear-gradient(45deg, #8080ff, #ff80ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-weight: bold;
+    }
+
+    @font-face {
+      font-family: 'Franklin Gothic';
+      src: url('https://storage.wildwest.gg/uploads/1730265677765_franklin_gothic.woff2') format('woff2');
+      font-weight: normal;
+      font-style: normal;
+    }
+
+    :root {
+      --base-font-size: 16px;
+      --margin-size: 8rem;
+    }
+
+    html,
+    body {
+      font-size: var(--base-font-size);
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      font-family: 'Franklin Gothic', sans-serif;
+      background-color: #f0f0f0;
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      padding: var(--margin-size);
+      box-sizing: border-box;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    #game-container {
+      display: flex;
+      flex-grow: 1;
+      height: calc(100% - 4rem - var(--margin-size) * 2);
+      /* Subtracting space for the h1 and body padding */
+      overflow: hidden;
+      gap: 1rem;
+    }
+
+    #info-container {
+      width: 15rem;
+      background-color: #fff;
+      border-radius: 0.625rem;
+      padding: 1.5rem;
+      box-shadow: 0 0 0.625rem rgba(0, 0, 0, 0.1);
+      overflow-y: auto;
+      margin-right: 1rem;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
+
+    #chat-container {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      background-color: #fff;
+      border-radius: 0.625rem;
+      padding: 1.5rem;
+      box-shadow: 0 0 0.625rem rgba(0, 0, 0, 0.1);
+      margin-right: 0;
+      overflow: hidden;
+    }
+
+    #chat-history {
+      flex-grow: 1;
+      overflow-y: auto;
+      margin-bottom: 1.5rem;
+    }
+
+    #user-input {
+      width: 100%;
+      padding: 0.75rem;
+      border: 0.0625rem solid #ccc;
+      border-radius: 0.3125rem;
+      font-family: 'Franklin Gothic', sans-serif;
+      font-size: 1rem;
+      box-sizing: border-box;
+      min-height: 2.5rem;
+      max-height: 10rem;
+      overflow-y: auto;
+      resize: none;
+    }
+
+    #user-input-container,
+    #score-text-container {
+      position: relative;
+    }
+
+    .char-counter {
+      position: absolute;
+      right: 10px;
+      bottom: 10px;
+      font-size: 0.8rem;
+      color: #666;
+    }
+
+    .char-counter.near-limit {
+      color: #ff4d4d;
+    }
+
+    #leaderboard {
+      width: 15rem;
+      background-color: #fff;
+      border-radius: 0.625rem;
+      padding: 1.5rem;
+      box-shadow: 0 0 0.625rem rgba(0, 0, 0, 0.1);
+      overflow-y: auto;
+    }
+
+    h1 {
+      font-size: 2.25rem;
+      margin: 1.5rem 0;
+      text-align: center;
+    }
+
+    h2 {
+      font-size: 1.75rem;
+      margin-bottom: 1rem;
+    }
+
+    h1,
+    h2,
+    .gradient-text {
+      background: linear-gradient(45deg, #8080ff, #ff80ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .message {
+      margin-bottom: 1rem;
+      padding: 0.75rem;
+      border-radius: 0.3125rem;
+    }
+
+    .user-message {
+      background-color: #f0f0f0;
+      align-self: flex-end;
+    }
+
+    .ai-message {
+      background: linear-gradient(45deg, #e6e6ff, #f2e6ff);
+      align-self: flex-start;
+    }
+
+    .win-phrase {
+      background: linear-gradient(45deg, #8080ff, #ff80ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-weight: bold;
+    }
+
+    #win-container {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: #fff;
+      padding: 2.5rem;
+      border-radius: 0.625rem;
+      box-shadow: 0 0 1.25rem rgba(0, 0, 0, 0.2);
+      width: 80%;
+      /* Increased width */
+      max-width: 600px;
+      /* Added max-width for larger screens */
+    }
+
+    #score-text-input {
+      width: 100%;
+      padding: 0.75rem;
+      margin-bottom: 1rem;
+      border: 0.0625rem solid #ccc;
+      border-radius: 0.3125rem;
+      font-family: 'Franklin Gothic', sans-serif;
+      font-size: 1rem;
+      box-sizing: border-box;
+    }
+
+    #score-text-container {
+      width: 100%;
+    }
+
+    button {
+      padding: 0.75rem 1.5rem;
+      background-color: #8080ff;
+      color: white;
+      border: none;
+      border-radius: 0.3125rem;
+      cursor: pointer;
+      font-family: 'Franklin Gothic', sans-serif;
+      font-size: 1rem;
+    }
+
+    button:hover {
+      background-color: #6060ff;
+    }
+
+    .leaderboard-entry {
+      margin-bottom: 0.5rem;
+    }
+
+    .leaderboard-entry .username {
+      cursor: pointer;
+      border-bottom: 1px solid;
+      border-image: linear-gradient(45deg, #8080ff, #ff80ff) 1;
+    }
+
+    .leaderboard-entry:nth-child(1) .username {
+      background: linear-gradient(45deg, #8080ff, #ff80ff, #FFD700);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .leaderboard-entry:nth-child(2) .username {
+      background: linear-gradient(45deg, #8080ff, #ff80ff, #C0C0C0);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .leaderboard-entry:nth-child(3) .username {
+      background: linear-gradient(45deg, #8080ff, #ff80ff, #8B4513);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .leaderboard-entry:not(:nth-child(-n+3)) .username {
+      background: linear-gradient(45deg, #8080ff, #ff80ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .leaderboard-entry .score {
+      background: linear-gradient(45deg, #800080, #ff00ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .leaderboard-entry .placement {
+      font-weight: bold;
+    }
+
+    .leaderboard-entry .placement-1st {
+      background: linear-gradient(45deg, #FFD700, #FFA500);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .leaderboard-entry .placement-2nd {
+      background: linear-gradient(45deg, #C0C0C0, #FFFFFF);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .leaderboard-entry .placement-3rd {
+      background: linear-gradient(45deg, #8B4513, #FFA500);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .leaderboard-entry .placement-other {
+      background: linear-gradient(45deg, #808080, #0000FF);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    #hover-text-container {
+      display: none;
+      position: fixed;
+      background: linear-gradient(45deg, #f0f0ff, #fff0ff);
+      border: 1px solid #ddd;
+      padding: 10px;
+      border-radius: 5px;
+      z-index: 1000;
+      width: 200px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    #hover-text-container .ai-message {
+      background: linear-gradient(45deg, #8080ff, #ff80ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-weight: bold;
+    }
+
+    #hover-text-container .loser-text {
+      background: linear-gradient(45deg, #FFD700, #FFA500);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-weight: bold;
+    }
+
+    #hover-text-container .user-handle,
+    #hover-text-container .ai-handle {
+      background: linear-gradient(45deg, #800080, #ff00ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-weight: bold;
+    }
+
+    /* Custom scrollbar styles */
+    ::-webkit-scrollbar {
+      width: 10px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #e5e5e5;
+      border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: linear-gradient(45deg, #8080ff, #ff80ff);
+      border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(45deg, #6060ff, #ff60ff);
+    }
+
+    /* For Firefox */
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: #c1c1c1 #f1f1f1;
+    }
+
+    @media (max-width: 1200px) {
+      :root {
+        --margin-size: 6rem;
+      }
+    }
+
+    @media (max-width: 992px) {
+      :root {
+        --margin-size: 5rem;
+      }
+    }
+
+    @media (max-width: 1200px) {
+      #info-container {
+        width: 12rem;
+      }
+    }
+
+    @media (max-width: 992px) {
+      #info-container {
+        width: 10rem;
+      }
+    }
+
+    @media (max-width: 768px) {
+      :root {
+        --base-font-size: 14px;
+        --margin-size: 4rem;
+      }
+
+      #game-container {
+        flex-direction: column;
+        height: calc(100% - 3rem - var(--margin-size) * 2);
+        /* Adjusting for smaller h1 on mobile and body padding */
+      }
+
+      #info-container {
+        width: auto;
+        max-height: 30%;
+        margin-right: 0;
+        margin-bottom: 1rem;
+      }
+
+      #chat-container {
+        margin-bottom: 1rem;
+      }
+
+      #leaderboard {
+        width: auto;
+        max-height: 30%;
+      }
+
+      #win-container {
+        width: 90%;
+        /* Adjusted for mobile */
+      }
+    }
+
+    @media (max-width: 1200px) {
+      #info-container {
+        font-size: 0.9rem;
+      }
+    }
+
+    @media (max-width: 992px) {
+      #info-container {
+        font-size: 0.8rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      :root {
+        --base-font-size: 12px;
+        --margin-size: 3rem;
+      }
+
+      h1 {
+        font-size: 1.75rem;
+        margin: 1rem 0;
+      }
+
+      #game-container {
+        height: calc(100% - 2.75rem - var(--margin-size) * 2);
+        /* Further adjusting for even smaller h1 on very small screens and body padding */
+      }
+
+      #win-container {
+        width: 95%;
+        /* Further adjusted for very small screens */
+      }
+    }
+
+    #last-win-container {
+      margin-top: 1rem;
+      padding: 0.5rem;
+      background: linear-gradient(45deg, #f0f0ff, #fff0ff);
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 0.8rem;
+    }
+
+    #last-win-container .user-handle,
+    #last-win-container .ai-handle,
+    #last-win-container .ai-message {
+      background: linear-gradient(45deg, #8080ff, #ff80ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-weight: bold;
+    }
+
+    #last-win-container .loser-text {
+      background: linear-gradient(45deg, #FFD700, #FFA500);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-weight: bold;
+    }
+
+    #last-win-container .ai-message .loser-text {
+      background: linear-gradient(45deg, #FFD700, #FFA500);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+  </style>
+
+<script>
+    (function() {
+      window.addEventListener("error", (event) => {
+        console.log("ERROR EVENT", event);
+        window.parent.postMessage({
+            type: "IFRAME_ERROR_EVENT",
+            message: event.message,
+            filename: event.filename,
+            error: event.error,
+            lineno: event.lineno,
+            colno: event.colno,
+          },
+          "*"
+        );
+      });
+
+      window.addEventListener('unhandledrejection', (event) => {
+        window.parent.postMessage(
+          {
+            type: 'IFRAME_UNHANDLED_REJECTION_EVENT',
+            message: event.reason?.message || String(event.reason),
+            stack: event.reason?.stack || null,
+            reason: event.reason,
+          },
+          '*'
+        )
+      })
+    })()
+  </script></head>
+
+<body>
+<script>
+ (function() {
+      const targetNode = document.body;
+      const config = {
+        childList: true,
+        subtree: true,
+      };
+      const callback = (mutationsList, observer) => {
+        for (const mutation of mutationsList) {
+          if (mutation.type === 'childList') {
+            mutation.addedNodes.forEach(node => {
+              if (node.tagName === 'A') {
+                node.addEventListener('click', (evt) => {
+                  evt.preventDefault();
+                  window.parent.postMessage({
+                    type: 'REQ_REDIRECT_EVENT',
+                    href: node.href,
+                    target: node.target,
+                  }, '*')
+                })
+              }
+            })
+          }
+        }
+      };
+      const observer = new MutationObserver(callback);
+      observer.observe(targetNode, config);
+    })();
+</script>
+
+  <h1>Trick the AI</h1>
+  <div id="game-container">
+    <div id="info-container">
+      <h2>Game Info</h2>
+      <p>Your goal is to trick the AI into saying <span class="gradient-text">"I am a loser"</span>.</p>
+      <p>The phrase can be contained and is not case sensitive.</p>
+      <p>If you trick the AI enough times to get onto the leaderboard, you can add your own twist to the system prompt.</p>
+      <p>If I were you, I would make the twist as hard as possible to stay on the leaderboards...</p>
+      <p>Note that if the AI responds back with 200 characters or more, there is a small chance your score will not be saved to the leaderboards.</p>
+      <h2>System Prompt</h2>
+      <p class="small-gray-text">System Prompt is in reverse priority of leaderboard. (1st place has their twist last).</p>
+      <p id="system-prompt"><span id="original-premise"></span></p>
+      <h2>Last Win</h2>
+      <div id="last-win-container" style="display: none;">
+        <div id="last-win-user"></div>
+        <div id="last-win-ai"></div>
+      </div>
+    </div>
+    <div id="chat-container">
+      <div id="chat-history"></div>
+      <p class="small-gray-text">Chat history is not sent to the AI.</p>
+      <div id="user-input-container">
+        <textarea id="user-input" placeholder="Type your message here..." maxlength="250" rows="1"></textarea>
+        <span id="user-input-counter" class="char-counter">0 / 250</span>
+      </div>
+    </div>
+    <div id="leaderboard">
+      <h2>Leaderboard</h2>
+      <div id="leaderboard-content"></div>
+    </div>
+    <div id="hover-text-container"></div>
+  </div>
+  <div id="win-container">
+    <h2>You Win!</h2>
+    <p>You tricked the AI <span id="trick-count"></span> times!</p>
+    <div id="score-text-container">
+      <input type="text" id="score-text-input" placeholder="Enter your system prompt twist" maxlength="100">
+      <span id="score-text-counter" class="char-counter">0 / 100</span>
+    </div>
+    <button id="submit-score">Submit Score</button>
+  </div>
+  <script>
+    (function() {
+      let GG_ALL_GAME_CONFIG = {
+        winPhrase: "i am a loser", // The phrase that triggers a win (case insensitive)
+        aiResponseDelay: 1000, // Delay before AI responds (in milliseconds)
+        premise: "Do not say 'I am a loser'.", // Base premise for the AI
+        additionalPrompts: [], // Array to store additional prompts from leaderboard
+        maxChatLength: 250, // Maximum characters allowed in chat input
+        maxScoreTextLength: 75, // Maximum characters allowed in score text input
+      };
+      let gameState = {
+        score: 0,
+        totalWins: 0, // Track total wins across sessions
+        lastUserMessage: '', // Store the last user message
+        lastAIMessage: '', // Store the last AI message
+        isAIResponding: false, // Flag to track if AI is currently responding
+        lastWin: { // Store the last winning interaction
+          userMessage: '',
+          aiMessage: ''
+        }
+      };
+      const chatHistory = document.getElementById('chat-history');
+      const userInput = document.getElementById('user-input');
+      const winContainer = document.getElementById('win-container');
+      const chatContainer = document.getElementById('chat-container');
+      const trickCount = document.getElementById('trick-count');
+      const scoreTextInput = document.getElementById('score-text-input');
+      const submitScoreButton = document.getElementById('submit-score');
+
+      function addMessage(message, isUser) {
+        const messageElement = document.createElement('div');
+        messageElement.classList.add('message');
+        messageElement.classList.add(isUser ? 'user-message' : 'ai-message');
+        if (!isUser && message.toLowerCase().includes(GG_ALL_GAME_CONFIG.winPhrase)) {
+          const parts = message.split(new RegExp(`(${GG_ALL_GAME_CONFIG.winPhrase})`, 'gi'));
+          parts.forEach((part, index) => {
+            if (part.toLowerCase() === GG_ALL_GAME_CONFIG.winPhrase) {
+              const span = document.createElement('span');
+              span.classList.add('win-phrase');
+              span.textContent = part;
+              messageElement.appendChild(span);
+            } else {
+              messageElement.appendChild(document.createTextNode(part));
+            }
+          });
+        } else {
+          messageElement.textContent = message;
+        }
+        chatHistory.appendChild(messageElement);
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+        if (isUser) {
+          gameState.lastUserMessage = message;
+        } else {
+          gameState.lastAIMessage = message;
+        }
+      }
+
+      function checkWinCondition(aiResponse) {
+        if (aiResponse.toLowerCase().includes(GG_ALL_GAME_CONFIG.winPhrase)) {
+          gameState.score++;
+          gameState.totalWins++;
+          showWinScreen(aiResponse);
+          saveGame(gameState);
+        }
+      }
+
+      function showWinScreen(aiResponse) {
+        userInput.style.display = 'none';
+        winContainer.style.display = 'flex';
+        trickCount.textContent = gameState.totalWins;
+        addMessage(aiResponse, false);
+        updateTotalWinsDisplay();
+        updateLastWin(gameState.lastUserMessage, aiResponse);
+        // Send webhook for winning
+        sendWebhook('https://discord.com/api/webhooks/1327799728746008701/LnOq_tgGrzGgmiJDw88qokR-EhtGA4eqho-E93wLKK4R587vtdQ9Alm0iw9CqEN6JuP3',
+          `User won!\nUser: ${gameState.lastUserMessage}\nAI: ${aiResponse}`);
+      }
+
+      function updateLastWin(userMessage, aiMessage) {
+        const lastWinContainer = document.getElementById('last-win-container');
+        const lastWinUser = document.getElementById('last-win-user');
+        const lastWinAI = document.getElementById('last-win-ai');
+        lastWinUser.innerHTML = `<span class="user-handle">You:</span> ${userMessage}`;
+        lastWinAI.innerHTML = `<span class="ai-handle">AI:</span> <span class="ai-message">${aiMessage.replace(/(i am a loser)/gi, '<span class="loser-text">$1</span>')}</span>`;
+        lastWinContainer.style.display = 'block';
+        // Update gameState with the last win
+        gameState.lastWin = {
+          userMessage: userMessage,
+          aiMessage: aiMessage
+        };
+        // Save the game state
+        saveGame(gameState);
+      }
+
+      function processUserInput(input) {
+        addMessage(input, true);
+        gameState.isAIResponding = true;
+        setTimeout(() => {
+          fetch('https://sgima.samenal.workers.dev/run', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                epremise: btoa(GG_ALL_GAME_CONFIG.premise),
+                etext: btoa([input]),
+                key: 'frozenpardonhammerjacketbudgetpepper'
+              }),
+            })
+            .then(response => response.json())
+            .then(data => {
+              let aiResponse = data.result;
+              // Filter out # and ~ from the AI response
+              aiResponse = aiResponse.replace(/[#~]/g, '');
+              checkWinCondition(aiResponse);
+              if (!aiResponse.toLowerCase().includes(GG_ALL_GAME_CONFIG.winPhrase)) {
+                addMessage(aiResponse, false);
+              }
+              gameState.isAIResponding = false;
+              // Send webhook for regular chat
+              sendWebhook('https://discord.com/api/webhooks/1327799476479590511/49FUHUzjkIz0HfgZV91nmafbMx1tkHb_ORej0bwneszDPOQ1ne2MZQPm4rxcOumpDJPR',
+                `User: ${input}\nAI: ${aiResponse}`);
+            })
+            .catch(error => {
+              console.error('Error:', error);
+              addMessage("Sorry, I couldn't process that. Please try again.", false);
+              gameState.isAIResponding = false;
+            });
+        }, GG_ALL_GAME_CONFIG.aiResponseDelay);
+      }
+
+      function sendWebhook(url, content) {
+        // Request user handle
+        window.parent.postMessage({
+          type: 'REQUEST_USER_HANDLE_EVENT'
+        }, '*');
+        // Listen for the response
+        window.addEventListener('message', function handleUserInfo(event) {
+          if (event.data.type === 'RESPONSE_USER_HANDLE_EVENT') {
+            const {
+              handle,
+              is_anon
+            } = event.data;
+            const userHandle = is_anon ? 'Anonymous' : handle;
+            // Update content with user handle
+            const updatedContent = content.replace(/User:/g, `${userHandle}:`);
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  content: updatedContent
+                }),
+              })
+              .then(response => response.json())
+              .then(data => console.log('Webhook sent successfully'))
+              .catch(error => console.error('Error sending webhook:', error));
+            // Remove the event listener after handling
+            window.removeEventListener('message', handleUserInfo);
+          }
+        });
+      }
+
+      function isValidInput(input) {
+        return /^[^\x00-\x1F\x7F#~]*$/.test(input);
+      }
+
+      function updateCharCounter(input, counter, maxLength) {
+        const currentLength = input.value.length;
+        counter.textContent = `${currentLength} / ${maxLength}`;
+        counter.classList.toggle('near-limit', currentLength >= maxLength * 0.8);
+      }
+      userInput.addEventListener('input', function(event) {
+        if (!isValidInput(this.value)) {
+          this.value = this.value.replace(/[^\x20-\x7E]|[#~]/g, '');
+        }
+        updateCharCounter(this, document.getElementById('user-input-counter'), GG_ALL_GAME_CONFIG.maxChatLength);
+        this.style.height = 'auto';
+        this.style.height = (this.scrollHeight) + 'px';
+      });
+      userInput.addEventListener('keypress', function(event) {
+        if (event.key === 'Enter' && this.value.trim() !== '' && !gameState.isAIResponding) {
+          const userMessage = this.value.trim();
+          processUserInput(userMessage);
+          this.value = '';
+          updateCharCounter(this, document.getElementById('user-input-counter'), GG_ALL_GAME_CONFIG.maxChatLength);
+        } else if (event.key === 'Enter' && gameState.isAIResponding) {
+          event.preventDefault(); // Prevent the Enter key from submitting when AI is responding
+        }
+      });
+      scoreTextInput.addEventListener('input', function(event) {
+        if (!isValidInput(this.value)) {
+          this.value = this.value.replace(/[^\x20-\x7E]|[#~]/g, '');
+        }
+        updateCharCounter(this, document.getElementById('score-text-counter'), GG_ALL_GAME_CONFIG.maxScoreTextLength);
+      });
+      submitScoreButton.addEventListener('click', function() {
+        const scoreText = scoreTextInput.value.trim() || `Tricked the AI ${gameState.totalWins} times!`;
+        const winningExchange = `${gameState.lastUserMessage}~~~${gameState.lastAIMessage}`;
+        saveScore(gameState.totalWins, scoreText, winningExchange);
+        winContainer.style.display = 'none';
+        userInput.style.display = 'block';
+        gameState.score = 0;
+        gameState.isAIResponding = false; // Reset AI responding state
+        scoreTextInput.value = '';
+        updateCharCounter(scoreTextInput, document.getElementById('score-text-counter'), GG_ALL_GAME_CONFIG.maxScoreTextLength);
+        // Update the premise with the new score text
+        if (!GG_ALL_GAME_CONFIG.premise.endsWith('.')) {
+          GG_ALL_GAME_CONFIG.premise += '.';
+        }
+        GG_ALL_GAME_CONFIG.premise += ' ' + scoreText;
+        // Refresh the page after submitting the score
+        window.location.reload();
+      });
+      // Initialize character counters
+      updateCharCounter(userInput, document.getElementById('user-input-counter'), GG_ALL_GAME_CONFIG.maxChatLength);
+      updateCharCounter(scoreTextInput, document.getElementById('score-text-counter'), GG_ALL_GAME_CONFIG.maxScoreTextLength);
+
+      function saveScore(score, scoreText, winningExchange) {
+        const submitScoreEvent = {
+          type: 'REQUEST_SAVE_SCORE_EVENT',
+          score_numeric: score,
+          score_text: `${scoreText}###${winningExchange}`,
+        };
+        window.parent.postMessage(submitScoreEvent, '*');
+      }
+
+      function requestLeaderboard() {
+        window.parent.postMessage({
+          type: 'REQUEST_LOAD_SCORES_EVENT'
+        }, '*');
+      }
+      window.addEventListener('message', (event) => {
+        const {
+          type,
+          scores
+        } = event.data;
+        if (type === 'RESPONSE_LOAD_SCORES_EVENT') {
+          updateLeaderboard(scores);
+        }
+      });
+
+      function updateLeaderboard(scores) {
+        const leaderboardContent = document.getElementById('leaderboard-content');
+        const hoverTextContainer = document.getElementById('hover-text-container');
+        leaderboardContent.innerHTML = '';
+        GG_ALL_GAME_CONFIG.additionalPrompts = []; // Reset additional prompts
+        scores.slice(0, 10).forEach((score, index) => {
+          const scoreElement = document.createElement('div');
+          scoreElement.classList.add('leaderboard-entry');
+          const [displayText, winningExchange] = score.score_text.split('###');
+          const fadePercentage = (index / (scores.length - 1)) * 100;
+          const placement = getOrdinal(index + 1);
+          const placementClass = index === 0 ? 'placement-1st' : index === 1 ? 'placement-2nd' : index === 2 ? 'placement-3rd' : 'placement-other';
+          scoreElement.innerHTML = `<span class="placement ${placementClass}">${placement}</span> <span class="username" data-index="${index}">${score.handle}</span>: <span class="score" style="background: linear-gradient(45deg, #800080 ${100 - fadePercentage}%, #000000), linear-gradient(45deg, #ff00ff ${100 - fadePercentage}%, #000000); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">${score.score_numeric}</span> - ${displayText}`;
+          leaderboardContent.appendChild(scoreElement);
+          // Add the displayText to the additional prompts
+          GG_ALL_GAME_CONFIG.additionalPrompts.unshift(displayText); // Changed from push to unshift
+        });
+
+        function getOrdinal(n) {
+          const s = ["th", "st", "nd", "rd"];
+          const v = n % 100;
+          return n + (s[(v - 20) % 10] || s[v] || s[0]);
+        }
+        // Add event listeners for username hover
+        const usernames = leaderboardContent.querySelectorAll('.username');
+        usernames.forEach(username => {
+          username.addEventListener('mouseenter', (event) => {
+            const index = event.target.dataset.index;
+            const [, winningExchange] = scores[index].score_text.split('###');
+            if (winningExchange) {
+              const [userMessage, aiMessage] = winningExchange.split('~~~');
+              hoverTextContainer.innerHTML = `
+<div><span class="user-handle">${scores[index].handle}:</span> ${userMessage}</div>
+<div class="ai-message"><span class="ai-handle">AI:</span> ${aiMessage.replace(/(i am a loser)/gi, '<span class="loser-text">$1</span>')}</div>
+`;
+              hoverTextContainer.style.display = 'block';
+              const rect = event.target.getBoundingClientRect();
+              hoverTextContainer.style.top = `${rect.bottom + window.scrollY}px`;
+              hoverTextContainer.style.left = `${rect.left + window.scrollX}px`;
+            }
+          });
+        });
+        // Add event listeners for hover text container
+        hoverTextContainer.addEventListener('mouseenter', () => {
+          hoverTextContainer.style.display = 'block';
+        });
+        hoverTextContainer.addEventListener('mouseleave', () => {
+          hoverTextContainer.style.display = 'none';
+        });
+        // Remove mouseleave event from usernames
+        usernames.forEach(username => {
+          username.removeEventListener('mouseleave', () => {
+            hoverTextContainer.style.display = 'none';
+          });
+        });
+        // Update the premise with additional prompts
+        updatePremise();
+      }
+
+      function updatePremise() {
+        let updatedPremise = GG_ALL_GAME_CONFIG.premise.split('.')[0] + '.'; // Reset to the initial premise
+        GG_ALL_GAME_CONFIG.additionalPrompts.slice(0, 10).forEach(prompt => {
+          if (prompt.trim() !== '') {
+            updatedPremise += ' ' + prompt.trim() + '.';
+          }
+        });
+        GG_ALL_GAME_CONFIG.premise = updatedPremise.trim();
+        // Update the system prompt display
+        const systemPromptElement = document.getElementById('system-prompt');
+        const originalPremiseElement = document.getElementById('original-premise');
+        const originalPremise = GG_ALL_GAME_CONFIG.premise.split('.')[0] + '.';
+        originalPremiseElement.textContent = originalPremise;
+        systemPromptElement.innerHTML = originalPremiseElement.outerHTML + ' ' + GG_ALL_GAME_CONFIG.premise.substring(originalPremise.length).trim();
+      }
+      // Initial leaderboard request
+      requestLeaderboard();
+      // Request leaderboard every 30 seconds
+      setInterval(requestLeaderboard, 30000);
+      // Load game state on start
+      loadGame();
+      // Function to save game state
+      function saveGame(gameState) {
+        const saveData = {
+          totalWins: gameState.totalWins,
+          lastWin: gameState.lastWin
+        };
+        const saveGameEvent = {
+          type: 'REQUEST_SAVE_GAME_EVENT',
+          save_data: saveData
+        };
+        window.parent.postMessage(saveGameEvent, '*');
+      }
+      // Function to load game state
+      function loadGame() {
+        const loadGameEvent = {
+          type: 'REQUEST_LOAD_GAME_EVENT'
+        };
+        window.parent.postMessage(loadGameEvent, '*');
+      }
+      // Handle load game response
+      window.addEventListener('message', (event) => {
+        const {
+          type,
+          save_data
+        } = event.data;
+        if (type === 'RESPONSE_LOAD_GAME_EVENT') {
+          if (save_data && save_data.totalWins !== undefined) {
+            gameState.totalWins = save_data.totalWins;
+            updateTotalWinsDisplay();
+          }
+          if (save_data && save_data.lastWin) {
+            gameState.lastWin = save_data.lastWin;
+            updateLastWin(gameState.lastWin.userMessage, gameState.lastWin.aiMessage);
+          }
+        }
+      });
+      // Function to update total wins display
+      function updateTotalWinsDisplay() {
+        const infoContainer = document.getElementById('info-container');
+        const totalWinsElement = document.getElementById('total-wins');
+        if (totalWinsElement) {
+          totalWinsElement.textContent = gameState.totalWins;
+        } else {
+          const header = document.createElement('h2');
+          header.textContent = 'Total Wins';
+          infoContainer.appendChild(header);
+          const newElement = document.createElement('p');
+          newElement.id = 'total-wins';
+          newElement.textContent = gameState.totalWins;
+          infoContainer.appendChild(newElement);
+        }
+      }
+      // Function to update font size based on window width
+      function updateFontSize() {
+        const width = window.innerWidth;
+        let fontSize;
+        if (width <= 480) {
+          fontSize = 12;
+        } else if (width <= 768) {
+          fontSize = 14;
+        } else {
+          fontSize = 16;
+        }
+        document.documentElement.style.setProperty('--base-font-size', `${fontSize}px`);
+      }
+      // Initial call to set font size
+      updateFontSize();
+      // Add event listener for window resize
+      window.addEventListener('resize', updateFontSize);
+    })();
+  </script>
+
+</body>
+
+</html>
