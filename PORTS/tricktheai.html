@@ -824,7 +824,9 @@ async function processUserInput(input) {
         }
         GG_ALL_GAME_CONFIG.premise += ' ' + scoreText;
         // Refresh the page after submitting the score
-        window.location.reload();
+        setTimeout(function(){
+          window.location.reload();
+        }, 3000);
       });
       // Initialize character counters
       updateCharCounter(userInput, document.getElementById('user-input-counter'), GG_ALL_GAME_CONFIG.maxChatLength);
